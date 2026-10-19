@@ -28,8 +28,6 @@ jobs:
           tags: |
             T0mst/backend:${{ github.sha }}
             T0mst/backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
       
       - name: Build and push frontend
         uses: docker/build-push-action@v5
