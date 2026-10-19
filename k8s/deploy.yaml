@@ -8,7 +8,7 @@ metadata:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: PG-secret
+  name: pg-secret
   namespace: todo-app
 type: Opaque
 stringData:
@@ -58,17 +58,17 @@ spec:
         - name: POSTGRES_USER
           valueFrom: 
             secretKeyRef:
-              name: PG-secret
+              name: pg-secret
               key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
           valueFrom: 
             secretKeyRef:
-              name: PG-secret
+              name: pg-secret
               key: POSTGRES_PASSWORD
         - name: POSTGRES_DB
           valueFrom: 
             secretKeyRef:
-              name: PG-secret
+              name: pg-secret
               key: POSTGRES_DB
       volumes:
       - name: postgres-storage
@@ -115,17 +115,17 @@ spec:
         - name: POSTGRES_USER
           valueFrom: 
             secretKeyRef:
-              name: PG-secret
+              name: pg-secret
               key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
           valueFrom: 
             secretKeyRef:
-              name: PG-secret
+              name: pg-secret
               key: POSTGRES_PASSWORD
         - name: POSTGRES_DB
           valueFrom: 
             secretKeyRef:
-              name: PG-secret
+              name: pg-secret
               key: POSTGRES_DB
         - name: POSTGRES_HOST
           value: "db-service"
@@ -137,12 +137,14 @@ metadata:
   name: backend-service
   namespace: todo-app
 spec:
+  type: NodePort 
   selector:
     app: backend
   ports:
     - protocol: TCP
       port: 8000
       targetPort: 8000
+      nodePort: 30080 
 ---
 #развертывание фронт
 apiVersion: apps/v1
@@ -180,20 +182,21 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: ingress
-  namespace: todo-app
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend-service
-            port:
-              number: 80
+#---
+#ингресс
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  name: ingress
+#  namespace: todo-app
+#spec:
+#  rules:
+#  - http:
+#      paths:
+#      - path: /
+#        pathType: Prefix
+#        backend:
+#          service:
+#            name: frontend-service
+#            port:
+#              number: 80
