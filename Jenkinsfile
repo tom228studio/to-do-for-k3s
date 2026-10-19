@@ -66,14 +66,30 @@ pipeline {
     post {
         success {
             script {
-                echo '✅ Сборка успешна! Сообщаем GitHub...'
-                githubNotify context: 'jenkins-ci', description: 'Образы успешно собраны и отправлены', status: 'SUCCESS', targetUrl: env.BUILD_URL
+                echo '✅ Сборка успешна! Сообщаем GitHub через API...'
+                withCredentials([string(credentialsId: 'github-pat', variable: 'GITHUB_PAT')]) {
+                    sh """
+                        curl -s -X POST \\
+                        -H "Authorization: token \$GITHUB_PAT" \\
+                        -H "Accept: application/vnd.github.v3+json" \\
+                        https://api.github.com/repos/tom228studio/to-do-for-k3s/statuses/${env.GIT_COMMIT} \\
+                        -d '{"state":"success", "description":"Jenkins сборка успешна", "context":"jenkins-ci", "target_url":"${env.BUILD_URL}"}'
+                    """
+                }
             }
         }
         failure {
             script {
-                echo '❌ Сборка провалилась! Сообщаем GitHub...'
-                githubNotify context: 'jenkins-ci', description: 'Ошибка в процессе сборки', status: 'FAILURE', targetUrl: env.BUILD_URL
+                echo '❌ Сборка провалилась! Сообщаем GitHub через API...'
+                withCredentials([string(credentialsId: 'github-pat', variable: 'GITHUB_PAT')]) {
+                    sh """
+                        curl -s -X POST \\
+                        -H "Authorization: token \$GITHUB_PAT" \\
+                        -H "Accept: application/vnd.github.v3+json" \\
+                        https://api.github.com/repos/tom228studio/to-do-for-k3s/statuses/${env.GIT_COMMIT} \\
+                        -d '{"state":"failure", "description":"Ошибка в Jenkins", "context":"jenkins-ci", "target_url":"${env.BUILD_URL}"}'
+                    """
+                }
             }
         }
         always {
