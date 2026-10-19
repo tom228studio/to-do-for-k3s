@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: self-hosted
+    env:
+      DOCKER_CONFIG: /DATA/AppData/actions-runner/.docker
 
     steps:
       - name: Checkout code
@@ -39,4 +41,3 @@ jobs:
             T0mst/frontend:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          
