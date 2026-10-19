@@ -30,10 +30,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            docker.io/t0mst/backend:${{ github.sha }}
-            docker.io/t0mst/backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            docker.io/T0mst/backend:${{ github.sha }}
+            docker.io/T0mst/backend:latest
       
       - name: Build and push frontend
         uses: docker/build-push-action@v5
@@ -41,7 +39,5 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            docker.io/t0mst/frontend:${{ github.sha }}
-            docker.io/t0mst/frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            docker.io/T0mst/frontend:${{ github.sha }}
+            docker.io/T0mst/frontend:latest
