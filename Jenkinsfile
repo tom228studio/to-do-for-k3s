@@ -64,12 +64,23 @@ pipeline {
     }
 
     post {
-        always {
-            echo '✅ Пайплайн завершен.'
-            sh 'rm -rf ${WORKSPACE}/.docker || true'
+        success {
+            script {
+                echo '✅ Сборка успешна! Сообщаем GitHub...'
+                githubNotify context: 'jenkins-ci', description: 'Образы успешно собраны и отправлены', status: 'SUCCESS', targetUrl: env.BUILD_URL
+            }
         }
         failure {
-            echo '❌ Сборка не удалась! Проверьте логи выше.'
+            script {
+                echo '❌ Сборка провалилась! Сообщаем GitHub...'
+                githubNotify context: 'jenkins-ci', description: 'Ошибка в процессе сборки', status: 'FAILURE', targetUrl: env.BUILD_URL
+            }
+        }
+        always {
+            script {
+                echo '🧹 Очистка временных файлов...'
+                sh 'rm -rf ${WORKSPACE}/.docker || true'
+            }
         }
     }
 }
