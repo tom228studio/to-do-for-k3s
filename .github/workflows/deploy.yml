@@ -6,36 +6,26 @@ on:
 
 jobs:
   build:
-    # ГЛАВНОЕ ИЗМЕНЕНИЕ: указываем использовать ваш self-hosted раннер
-    # Если при настройке ./config.sh вы дали раннеру метку (например, zimaos), 
-    # замените на: runs-on: [self-hosted, zimaos]
     runs-on: self-hosted
 
     steps:
       - name: Checkout code
-        # Обновил до v4 (более свежая и быстрая версия)
         uses: actions/checkout@v4
       
       - name: Login to Docker Hub
-        # Обновил до v3
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       
       - name: Build and push backend
-        # Обновил до v5 (поддерживает улучшенное кэширование)
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
-          # Добавил тег 'latest', чтобы в k3s было проще тянуть актуальную версию
-          # без необходимости каждый раз менять SHA в деплойменте
           tags: |
             T0mst/backend:${{ github.sha }}
             T0mst/backend:latest
-          # Включаем кэш GitHub Actions. 
-          # Поскольку раннер теперь ваш, это значительно ускорит повторные сборки!
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
