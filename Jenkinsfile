@@ -3,8 +3,7 @@ pipeline {
 
     environment {
         DOCKER_CONFIG = '/DATA/AppData/actions-runner/.docker' // Если Jenkins работает на ZimaOS
-        DOCKER_HUB_REPO = 'T0mst'
-        // Убираем ручной вызов git отсюда!
+        DOCKER_HUB_REPO = 't0mst'
     }
 
     stages {
