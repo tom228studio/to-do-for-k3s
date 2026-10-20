@@ -137,7 +137,6 @@ metadata:
   name: backend-service
   namespace: todo-app
 spec:
-  type: NodePort 
   selector:
     app: backend
   ports:
@@ -175,6 +174,7 @@ metadata:
   name: frontend-service
   namespace: todo-app
 spec:
+  type: NodePort 
   selector:
     app: frontend
   ports:
