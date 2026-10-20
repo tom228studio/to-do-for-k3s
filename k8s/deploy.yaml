@@ -144,7 +144,6 @@ spec:
     - protocol: TCP
       port: 8000
       targetPort: 8000
-      nodePort: 30080 
 ---
 #развертывание фронт
 apiVersion: apps/v1
@@ -182,6 +181,7 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
+      nodePort: 30080 
 #---
 #ингресс
 #apiVersion: networking.k8s.io/v1
