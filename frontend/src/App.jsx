@@ -5,48 +5,7 @@ function App() {
   const [newTodo, setNewTodo] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(true); 
 
-  const fetchTodos = async () => {
-    const res = await fetch('/api/todos');
-    setTodos(await res.json());
-  };
-
-  useEffect(() => { 
-    fetchTodos(); 
-  }, []);
-
-  // 👇 Добавляем useEffect для управления стилями body
-  useEffect(() => {
-    // Убираем стандартные отступы браузера
-    document.body.style.margin = '0';
-    document.body.style.padding = '0';
-    
-    // Применяем цвет темы к body
-    document.body.style.backgroundColor = theme.bg;
-    document.body.style.transition = 'background-color 0.3s ease';
-  }, [isDarkMode, theme.bg]); // Обновляем при смене темы
-
-  const addTodo = async (e) => {
-    e.preventDefault();
-    if (!newTodo.trim()) return;
-    await fetch('/api/todos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTodo }),
-    });
-    setNewTodo('');
-    fetchTodos();
-  };
-
-  const toggleTodo = async (id) => {
-    await fetch(`/api/todos/${id}`, { method: 'PUT' });
-    fetchTodos();
-  };
-
-  const deleteTodo = async (id) => {
-    await fetch(`/api/todos/${id}`, { method: 'DELETE' });
-    fetchTodos();
-  };
-
+  // ✅ 1. СНАЧАЛА объявляем тему, чтобы она была доступна везде ниже
   const theme = isDarkMode ? {
     bg: '#121212',
     cardBg: '#1e1e1e',
@@ -69,8 +28,64 @@ function App() {
     placeholder: '#999'
   };
 
+  // ✅ 2. ТЕПЕРЬ безопасно используем theme в useEffect
+  useEffect(() => {
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.backgroundColor = theme.bg;
+    document.body.style.transition = 'background-color 0.3s ease';
+  }, [isDarkMode, theme.bg]);
+
+  const fetchTodos = async () => {
+    try {
+      const res = await fetch('/api/todos');
+      if (!res.ok) throw new Error(`Ошибка сервера: ${res.status}`);
+      const data = await res.json();
+      setTodos(data);
+    } catch (err) {
+      console.error("Не удалось загрузить задачи:", err);
+    }
+  };
+
+  useEffect(() => { 
+    fetchTodos(); 
+  }, []);
+
+  const addTodo = async (e) => {
+    e.preventDefault();
+    if (!newTodo.trim()) return;
+    try {
+      await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTodo }),
+      });
+      setNewTodo('');
+      fetchTodos();
+    } catch (err) {
+      console.error("Ошибка при добавлении:", err);
+    }
+  };
+
+  const toggleTodo = async (id) => {
+    try {
+      await fetch(`/api/todos/${id}`, { method: 'PUT' });
+      fetchTodos();
+    } catch (err) {
+      console.error("Ошибка при обновлении:", err);
+    }
+  };
+
+  const deleteTodo = async (id) => {
+    try {
+      await fetch(`/api/todos/${id}`, { method: 'DELETE' });
+      fetchTodos();
+    } catch (err) {
+      console.error("Ошибка при удалении:", err);
+    }
+  };
+
   return (
-    // 👇 Полноэкранная обертка с фоновым цветом темы
     <div style={{
       minHeight: '100vh',
       backgroundColor: theme.bg,
