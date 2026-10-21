@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 function App() {
   const [todos, setTodos] = useState([]);
   const [newTodo, setNewTodo] = useState('');
-  // Добавляем состояние для темы. По умолчанию true (темная тема)
   const [isDarkMode, setIsDarkMode] = useState(true); 
 
   const fetchTodos = async () => {
@@ -11,7 +10,20 @@ function App() {
     setTodos(await res.json());
   };
 
-  useEffect(() => { fetchTodos(); }, []);
+  useEffect(() => { 
+    fetchTodos(); 
+  }, []);
+
+  // 👇 Добавляем useEffect для управления стилями body
+  useEffect(() => {
+    // Убираем стандартные отступы браузера
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    
+    // Применяем цвет темы к body
+    document.body.style.backgroundColor = theme.bg;
+    document.body.style.transition = 'background-color 0.3s ease';
+  }, [isDarkMode, theme.bg]); // Обновляем при смене темы
 
   const addTodo = async (e) => {
     e.preventDefault();
@@ -35,7 +47,6 @@ function App() {
     fetchTodos();
   };
 
-  // Объект с цветами для тем
   const theme = isDarkMode ? {
     bg: '#121212',
     cardBg: '#1e1e1e',
@@ -43,7 +54,7 @@ function App() {
     inputBg: '#2c2c2c',
     inputBorder: '#444',
     border: '#333',
-    primary: '#bb86fc', // Акцентный цвет (фиолетовый)
+    primary: '#bb86fc',
     danger: '#cf6679',
     placeholder: '#888'
   } : {
@@ -59,112 +70,121 @@ function App() {
   };
 
   return (
-    // Основной контейнер
-    <div style={{ 
-      maxWidth: '500px', 
-      margin: '50px auto', 
-      fontFamily: 'sans-serif', 
-      backgroundColor: theme.cardBg, 
-      color: theme.text, 
-      padding: '30px', 
-      borderRadius: '12px',
-      boxShadow: isDarkMode ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 20px rgba(0,0,0,0.1)',
-      minHeight: '400px'
+    // 👇 Полноэкранная обертка с фоновым цветом темы
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: theme.bg,
+      padding: '20px',
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      transition: 'background-color 0.3s ease'
     }}>
-      
-      {/* Заголовок и кнопка переключения темы */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 style={{ margin: 0, fontSize: '24px' }}>📝 To-Do List</h1>
-        <button 
-          onClick={() => setIsDarkMode(!isDarkMode)} 
-          style={{ 
-            padding: '8px 12px', 
-            cursor: 'pointer', 
-            backgroundColor: theme.inputBg, 
-            color: theme.text, 
-            border: `1px solid ${theme.inputBorder}`, 
-            borderRadius: '6px',
-            fontSize: '16px'
-          }}
-          title="Переключить тему"
-        >
-          {isDarkMode ? '☀️' : '🌙'}
-        </button>
+      <div style={{ 
+        maxWidth: '500px', 
+        width: '100%',
+        margin: '50px auto', 
+        fontFamily: 'sans-serif', 
+        backgroundColor: theme.cardBg, 
+        color: theme.text, 
+        padding: '30px', 
+        borderRadius: '12px',
+        boxShadow: isDarkMode ? '0 4px 20px rgba(0,0,0,0.5)' : '0 4px 20px rgba(0,0,0,0.1)',
+        minHeight: '400px',
+        transition: 'all 0.3s ease'
+      }}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h1 style={{ margin: 0, fontSize: '24px' }}>📝 To-Do List</h1>
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)} 
+            style={{ 
+              padding: '8px 12px', 
+              cursor: 'pointer', 
+              backgroundColor: theme.inputBg, 
+              color: theme.text, 
+              border: `1px solid ${theme.inputBorder}`, 
+              borderRadius: '6px',
+              fontSize: '16px'
+            }}
+            title="Переключить тему"
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
+        </div>
+
+        <form onSubmit={addTodo} style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+          <input 
+            value={newTodo} 
+            onChange={(e) => setNewTodo(e.target.value)} 
+            placeholder="What needs to be done?" 
+            style={{ 
+              padding: '10px', 
+              flex: 1, 
+              backgroundColor: theme.inputBg, 
+              color: theme.text, 
+              border: `1px solid ${theme.inputBorder}`, 
+              borderRadius: '6px',
+              outline: 'none',
+              fontSize: '14px'
+            }}
+          />
+          <button 
+            type="submit" 
+            style={{ 
+              padding: '10px 20px', 
+              backgroundColor: theme.primary, 
+              color: '#fff', 
+              border: 'none', 
+              borderRadius: '6px', 
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}
+          >
+            Add
+          </button>
+        </form>
+
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {todos.map(todo => (
+            <li key={todo.id} style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '10px', 
+              borderBottom: `1px solid ${theme.border}`, 
+              paddingBottom: '10px' 
+            }}>
+              <span 
+                onClick={() => toggleTodo(todo.id)} 
+                style={{ 
+                  cursor: 'pointer', 
+                  textDecoration: todo.completed ? 'line-through' : 'none', 
+                  flex: 1,
+                  opacity: todo.completed ? 0.5 : 1,
+                  transition: 'opacity 0.2s'
+                }}
+              >
+                {todo.title}
+              </span>
+              <button 
+                onClick={() => deleteTodo(todo.id)} 
+                style={{ 
+                  color: theme.danger, 
+                  border: 'none', 
+                  background: 'none', 
+                  cursor: 'pointer', 
+                  fontSize: '18px',
+                  padding: '5px'
+                }}
+              >
+                ✖
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
-
-      {/* Форма добавления */}
-      <form onSubmit={addTodo} style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-        <input 
-          value={newTodo} 
-          onChange={(e) => setNewTodo(e.target.value)} 
-          placeholder="What needs to be done?" 
-          style={{ 
-            padding: '10px', 
-            flex: 1, 
-            backgroundColor: theme.inputBg, 
-            color: theme.text, 
-            border: `1px solid ${theme.inputBorder}`, 
-            borderRadius: '6px',
-            outline: 'none',
-            fontSize: '14px'
-          }}
-        />
-        <button 
-          type="submit" 
-          style={{ 
-            padding: '10px 20px', 
-            backgroundColor: theme.primary, 
-            color: '#fff', 
-            border: 'none', 
-            borderRadius: '6px', 
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '14px'
-          }}
-        >
-          Add
-        </button>
-      </form>
-
-      {/* Список задач */}
-      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-        {todos.map(todo => (
-          <li key={todo.id} style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: '10px', 
-            borderBottom: `1px solid ${theme.border}`, 
-            paddingBottom: '10px' 
-          }}>
-            <span 
-              onClick={() => toggleTodo(todo.id)} 
-              style={{ 
-                cursor: 'pointer', 
-                textDecoration: todo.completed ? 'line-through' : 'none', 
-                flex: 1,
-                opacity: todo.completed ? 0.5 : 1,
-                transition: 'opacity 0.2s'
-              }}
-            >
-              {todo.title}
-            </span>
-            <button 
-              onClick={() => deleteTodo(todo.id)} 
-              style={{ 
-                color: theme.danger, 
-                border: 'none', 
-                background: 'none', 
-                cursor: 'pointer', 
-                fontSize: '18px',
-                padding: '5px'
-              }}
-            >
-              ✖
-            </button>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
