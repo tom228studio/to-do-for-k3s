@@ -75,9 +75,16 @@ pipeline {
                         -d '{"state":"success", "description":"Jenkins сборка успешна", "context":"jenkins-ci", "target_url":"${env.BUILD_URL}"}'
                     """
                     
-                    // 2. Проверяем, что это ветка dev, и мержим её в main
-                    // env.BRANCH_NAME может быть 'dev', '*/dev' или 'refs/heads/dev' в зависимости от типа джобы
-                    if (env.BRANCH_NAME == 'dev' || env.GIT_BRANCH == '*/dev' || env.GIT_BRANCH == 'refs/heads/dev') {
+                     // 2. Проверяем ветку надежным способом
+                    // Собираем имя ветки из всех возможных переменных, а если их нет — спрашиваем у git
+                    def rawBranch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    
+                    // Очищаем имя ветки от мусора вроде 'origin/', '*/' или 'refs/heads/'
+                    def cleanBranch = rawBranch.replaceAll('^(\\*/|refs/heads/|origin/)', '').trim()
+                    
+                    echo "🔍 Определена ветка: '${cleanBranch}' (сырое значение: '${rawBranch}')"
+
+                    if (cleanBranch == 'dev') {
                         echo '🔄 Ветка dev прошла проверку. Выполняем слияние в main...'
                         
                         sh """
@@ -103,7 +110,7 @@ pipeline {
                             echo '✅ Успешно влито в main!'
                         """
                     } else {
-                        echo "ℹ️ Текущая ветка: ${env.BRANCH_NAME}. Пропускаем слияние в main (только для dev)."
+                        echo "ℹ️ Текущая ветка: '${cleanBranch}'. Пропускаем слияние в main (только для dev)."
                     }
                 }
             }
