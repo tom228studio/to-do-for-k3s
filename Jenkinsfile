@@ -4,8 +4,8 @@ pipeline {
     environment {
         // Указываем безопасную папку для конфигов Docker внутри контейнера Jenkins
         DOCKER_CONFIG = "${WORKSPACE}/.docker"
-        
         DOCKER_HUB_REPO = 't0mst'
+        GITHUB_REPO = 'tom228studio/to-do-for-k3s'
     }
 
     stages {
@@ -19,10 +19,8 @@ pipeline {
         stage('Build & Push Backend') {
             steps {
                 script {
-                    // Берем первые 7 символов хеша коммита
                     def shortCommit = env.GIT_COMMIT.take(7)
                     
-                    // Безопасно подставляем логин и пароль из настроек Jenkins
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         sh """
                             echo "🔑 Логинимся в Docker Hub..."
@@ -68,13 +66,46 @@ pipeline {
             script {
                 echo '✅ Сборка успешна! Сообщаем GitHub через API...'
                 withCredentials([string(credentialsId: 'github-pat', variable: 'GITHUB_PAT')]) {
+                    // 1. Обновляем статус коммита в GitHub
                     sh """
                         curl -s -X POST \\
                         -H "Authorization: token \$GITHUB_PAT" \\
                         -H "Accept: application/vnd.github.v3+json" \\
-                        https://api.github.com/repos/tom228studio/to-do-for-k3s/statuses/${env.GIT_COMMIT} \\
+                        https://api.github.com/repos/${GITHUB_REPO}/statuses/${env.GIT_COMMIT} \\
                         -d '{"state":"success", "description":"Jenkins сборка успешна", "context":"jenkins-ci", "target_url":"${env.BUILD_URL}"}'
                     """
+                    
+                    // 2. Проверяем, что это ветка dev, и мержим её в main
+                    // env.BRANCH_NAME может быть 'dev', '*/dev' или 'refs/heads/dev' в зависимости от типа джобы
+                    if (env.BRANCH_NAME == 'dev' || env.GIT_BRANCH == '*/dev' || env.GIT_BRANCH == 'refs/heads/dev') {
+                        echo '🔄 Ветка dev прошла проверку. Выполняем слияние в main...'
+                        
+                        sh """
+                            # Настраиваем git для коммита от имени Jenkins
+                            git config user.email "jenkins@tom228studio.com"
+                            git config user.name "Jenkins CI"
+                            
+                            # Добавляем токен в URL для авторизации пуша
+                            git remote set-url origin https://x-access-token:\${GITHUB_PAT}@github.com/${GITHUB_REPO}.git
+                            
+                            # Получаем актуальные данные с удаленного репозитория
+                            git fetch origin
+                            
+                            # Переключаемся на main (синхронизируем с удаленным)
+                            git checkout -B main origin/main
+                            
+                            # Мержим dev в main. 
+                            # [skip ci] важен, чтобы не запустить бесконечный цикл сборок, если Jenkins слушает и main тоже
+                            git merge origin/dev --no-ff -m "chore: auto-merge dev into main [skip ci]"
+                            
+                            # Пушим изменения в main
+                            git push origin main
+                            
+                            echo '✅ Успешно влито в main!'
+                        """
+                    } else {
+                        echo "ℹ️ Текущая ветка: ${env.BRANCH_NAME}. Пропускаем слияние в main (только для dev)."
+                    }
                 }
             }
         }
@@ -86,7 +117,7 @@ pipeline {
                         curl -s -X POST \\
                         -H "Authorization: token \$GITHUB_PAT" \\
                         -H "Accept: application/vnd.github.v3+json" \\
-                        https://api.github.com/repos/tom228studio/to-do-for-k3s/statuses/${env.GIT_COMMIT} \\
+                        https://api.github.com/repos/${GITHUB_REPO}/statuses/${env.GIT_COMMIT} \\
                         -d '{"state":"failure", "description":"Ошибка в Jenkins", "context":"jenkins-ci", "target_url":"${env.BUILD_URL}"}'
                     """
                 }
