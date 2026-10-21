@@ -114,7 +114,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: t0mst/backend:bcfccb5
+        image: t0mst/backend:17c03ab
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
@@ -175,7 +175,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: t0mst/frontend:bcfccb5
+        image: t0mst/frontend:17c03ab
         imagePullPolicy: Always
         ports:
         - containerPort: 80
