@@ -75,36 +75,18 @@ pipeline {
                         -d '{"state":"success", "description":"Jenkins сборка успешна", "context":"jenkins-ci", "target_url":"${env.BUILD_URL}"}'
                     """
                     
-                    // 2. Проверяем, что это ветка dev, и мержим её в main
-                    // env.BRANCH_NAME может быть 'dev', '*/dev' или 'refs/heads/dev' в зависимости от типа джобы
-                    if (env.BRANCH_NAME == 'dev' || env.GIT_BRANCH == '*/dev' || env.GIT_BRANCH == 'refs/heads/dev') {
-                        echo '🔄 Ветка dev прошла проверку. Выполняем слияние в main...'
-                        
-                        sh """
-                            # Настраиваем git для коммита от имени Jenkins
-                            git config user.email "jenkins@tom228studio.com"
-                            git config user.name "Jenkins CI"
-                            
-                            # Добавляем токен в URL для авторизации пуша
-                            git remote set-url origin https://x-access-token:\${GITHUB_PAT}@github.com/${GITHUB_REPO}.git
-                            
-                            # Получаем актуальные данные с удаленного репозитория
-                            git fetch origin
-                            
-                            # Переключаемся на main (синхронизируем с удаленным)
-                            git checkout -B main origin/main
-                            
-                            # Мержим dev в main. 
-                            git merge origin/dev --no-ff -m "chore: auto-merge dev into main [skip ci]"
-                            
-                            # Пушим изменения в main
-                            git push origin main
-                            
-                            echo '✅ Успешно влито в main!'
-                        """
-                    } else {
-                        echo "ℹ️ Текущая ветка: ${env.BRANCH_NAME}. Пропускаем слияние в main (только для dev)."
-                    }
+                    // 2. БЕЗ УСЛОВИЙ: мержим dev в main, так как эта задача и так для dev
+                    echo '🔄 Выполняем слияние dev в main...'
+                    sh """
+                        git config user.email "jenkins@tom228studio.com"
+                        git config user.name "Jenkins CI"
+                        git remote set-url origin https://x-access-token:\${GITHUB_PAT}@github.com/${GITHUB_REPO}.git
+                        git fetch origin
+                        git checkout -B main origin/main
+                        git merge origin/dev --no-ff -m "chore: auto-merge dev into main [skip ci]"
+                        git push origin main
+                        echo '✅ Успешно влито в main!'
+                    """
                 }
             }
         }
