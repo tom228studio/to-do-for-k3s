@@ -15,7 +15,8 @@ pipeline {
         stage('Build & Push Backend') {
             steps {
                 script {
-                    env.SHORT_COMMIT = env.GIT_COMMIT.take(7) // Делаем переменную глобальной для пайплайна
+                    // Сохраняем короткий хеш в глобальную переменную окружения
+                    env.SHORT_COMMIT = env.GIT_COMMIT.take(7)
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         sh """
                             echo "\$DOCKER_PASS" | docker login --username "\$DOCKER_USER" --password-stdin
@@ -42,39 +43,8 @@ pipeline {
                 }
             }
         }
-
-        // 🆕 НОВЫЙ ЭТАП: Обновляем YAML в Git
-        stage('Update Git Manifests') {
-            steps {
-                script {
-                    withCredentials([string(credentialsId: 'github-pat', variable: 'GITHUB_PAT')]) {
-                        sh """
-                            echo "📝 Обновляем теги образов в YAML..."
-                            
-                            # ВАЖНО: Замени 'твой_файл.yaml' на реальное имя файла в папке k8s!
-                            # Если у тебя все в одном файле, укажи его. Если в разных, продублируй строку.
-                            # Например: k8s/deployments.yaml или k8s/frontend.yaml
-                            
-                            sed -i 's|image: t0mst/frontend:.*|image: t0mst/frontend:${env.SHORT_COMMIT}|' k8s/*.yaml
-                            sed -i 's|image: t0mst/backend:.*|image: t0mst/backend:${env.SHORT_COMMIT}|' k8s/*.yaml
-                            
-                            git config user.email "jenkins@tom228studio.com"
-                            git config user.name "Jenkins CI"
-                            git remote set-url origin https://x-access-token:\${GITHUB_PAT}@github.com/${GITHUB_REPO}.git
-                            
-                            git add k8s/
-                            if ! git diff --staged --quiet; then
-                                git commit -m "chore: update images to ${env.SHORT_COMMIT} [skip ci]"
-                                git push origin HEAD:dev
-                                echo "✅ YAML обновлен и отправлен в dev!"
-                            else
-                                echo "ℹ️ Изменений в YAML нет."
-                            fi
-                        """
-                    }
-                }
-            }
-        }
+        
+        // ❌ УДАЛИЛИ stage('Update Git Manifests') отсюда, чтобы не пушить в dev!
     }
 
     post {
@@ -82,24 +52,38 @@ pipeline {
             script {
                 echo '✅ Сборка успешна!'
                 withCredentials([string(credentialsId: 'github-pat', variable: 'GITHUB_PAT')]) {
-                    // Обновляем статус в GitHub
-                    sh """
-                        curl -s -X POST -H "Authorization: token \$GITHUB_PAT" -H "Accept: application/vnd.github.v3+json" \\
-                        https://api.github.com/repos/${GITHUB_REPO}/statuses/${env.GIT_COMMIT} \\
-                        -d '{"state":"success", "description":"Jenkins OK", "context":"jenkins-ci", "target_url":"${env.BUILD_URL}"}'
-                    """
                     
-                    // Мержим dev в main (без проверок ветки, раз эта задача для dev)
-                    echo '🔄 Вливаем dev в main...'
+                    // 🔄 НОВАЯ ЛОГИКА: Сначала мержим, потом обновляем YAML в main
+                    echo '🔄 Вливаем dev в main и обновляем манифесты...'
                     sh """
                         git config user.email "jenkins@tom228studio.com"
                         git config user.name "Jenkins CI"
                         git remote set-url origin https://x-access-token:\${GITHUB_PAT}@github.com/${GITHUB_REPO}.git
                         git fetch origin
+                        
+                        # 1. Переключаемся на main и мержим dev
                         git checkout -B main origin/main
-                        git merge origin/dev --no-ff -m "chore: auto-merge dev into main [skip ci]"
-                        git push origin main
-                        echo '✅ Успешно влито в main!'
+                        git merge origin/dev --no-ff -m "chore: auto-merge dev into main"
+                        
+                        # 2. Теперь обновляем YAML уже в ветке main
+                        sed -i 's|image: t0mst/frontend:.*|image: t0mst/frontend:${env.SHORT_COMMIT}|' k8s/*.yaml
+                        sed -i 's|image: t0mst/backend:.*|image: t0mst/backend:${env.SHORT_COMMIT}|' k8s/*.yaml
+                        
+                        git add k8s/
+                        if ! git diff --staged --quiet; then
+                            git commit -m "chore: update images to ${env.SHORT_COMMIT} in main"
+                            git push origin main
+                            echo "✅ YAML обновлен и отправлен в main!"
+                        else
+                            echo "ℹ️ Изменений в YAML нет."
+                        fi
+                    """
+                    
+                    // Обновляем статус в GitHub
+                    sh """
+                        curl -s -X POST -H "Authorization: token \$GITHUB_PAT" -H "Accept: application/vnd.github.v3+json" \\
+                        https://api.github.com/repos/${GITHUB_REPO}/statuses/${env.GIT_COMMIT} \\
+                        -d '{"state":"success", "description":"Jenkins OK", "context":"jenkins-ci", "target_url":"${env.BUILD_URL}"}'
                     """
                 }
             }
