@@ -1,10 +1,10 @@
-#наименование
+# наименование
 apiVersion: v1
 kind: Namespace
 metadata:
   name: todo-app
 ---
-#секреты
+# секреты
 apiVersion: v1
 kind: Secret
 metadata:
@@ -16,7 +16,7 @@ stringData:
   POSTGRES_PASSWORD: password
   POSTGRES_DB: tododb
 ---
-#PVC
+# PVC
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -29,7 +29,7 @@ spec:
     requests:
       storage: 5Gi
 ---
-#развертывание пг
+# развертывание пг
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -49,6 +49,7 @@ spec:
       containers:
       - name: postgres
         image: postgres:15-alpine
+        imagePullPolicy: Always
         volumeMounts:
         - name: postgres-storage
           mountPath: /var/lib/postgresql/data
@@ -75,7 +76,7 @@ spec:
         persistentVolumeClaim:
           claimName: pg-pvc
 ---
-#сервис для пг
+# сервис для пг
 apiVersion: v1
 kind: Service
 metadata:
@@ -89,7 +90,7 @@ spec:
       port: 5432
       targetPort: 5432
 ---
-#развертывание бека
+# развертывание бека
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -97,6 +98,11 @@ metadata:
   namespace: todo-app
   labels:
     app: backend
+  annotations:
+    # Настройки ArgoCD Image Updater для бэкенда
+    argocd-image-updater.argoproj.io/image-list: backend=t0mst/backend:latest
+    argocd-image-updater.argoproj.io/backend.update-strategy: latest
+    argocd-image-updater.argoproj.io/write-back-method: argocd
 spec:
   selector:
     matchLabels:
@@ -109,6 +115,7 @@ spec:
       containers:
       - name: backend
         image: t0mst/backend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
@@ -130,7 +137,7 @@ spec:
         - name: POSTGRES_HOST
           value: "db-service"
 ---
-#сервис для бека
+# сервис для бека
 apiVersion: v1
 kind: Service
 metadata:
@@ -144,7 +151,7 @@ spec:
       port: 8000
       targetPort: 8000
 ---
-#развертывание фронт
+# развертывание фронт
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -152,6 +159,11 @@ metadata:
   namespace: todo-app
   labels:
     app: frontend
+  annotations:
+    # Настройки ArgoCD Image Updater для фронтенда
+    argocd-image-updater.argoproj.io/image-list: frontend=t0mst/frontend:latest
+    argocd-image-updater.argoproj.io/frontend.update-strategy: latest
+    argocd-image-updater.argoproj.io/write-back-method: argocd
 spec:
   selector:
     matchLabels:
@@ -164,10 +176,11 @@ spec:
       containers:
       - name: frontend
         image: t0mst/frontend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 80
 ---
-#сервис для фронт
+# сервис для фронт
 apiVersion: v1
 kind: Service
 metadata:
@@ -182,21 +195,3 @@ spec:
       port: 80
       targetPort: 80
       nodePort: 30080 
-#---
-#ингресс
-#apiVersion: networking.k8s.io/v1
-#kind: Ingress
-#metadata:
-#  name: ingress
-#  namespace: todo-app
-#spec:
-#  rules:
-#  - http:
-#      paths:
-#      - path: /
-#        pathType: Prefix
-#        backend:
-#          service:
-#            name: frontend-service
-#            port:
-#              number: 80
