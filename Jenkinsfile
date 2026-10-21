@@ -95,7 +95,6 @@ pipeline {
                             git checkout -B main origin/main
                             
                             # Мержим dev в main. 
-                            # [skip ci] важен, чтобы не запустить бесконечный цикл сборок, если Jenkins слушает и main тоже
                             git merge origin/dev --no-ff -m "chore: auto-merge dev into main [skip ci]"
                             
                             # Пушим изменения в main
